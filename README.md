@@ -108,11 +108,11 @@ ID: 2, Nazwa: Liverpool FC, Liga: Premier League
 
 ## Wyniki wykonanych przykładowych działań
 
-Przykład dodania ligi
+### Przykład dodania ligi
 
 <img src="dodanie_ligi.png" width="100%"/>
 
-Wynik w tabeli
+### Wynik w tabeli
 
 <img src="wynik_dodania.png" width="100%"/>
 
