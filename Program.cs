@@ -8,9 +8,8 @@ namespace FootballClubApp
     {
         static void Main(string[] args)
         {
-        
             var options = new DbContextOptionsBuilder<FootballClubContext>()
-                .UseSqlServer("Server=nazwa_serwera;Database=FootballClub;Trusted_Connection=True;TrustServerCertificate=True;")
+                .UseSqlServer("Server=nazwa_serwera(zmień);Database=FootballClub;Trusted_Connection=True;TrustServerCertificate=True;")
                 .Options;
 
             using var context = new FootballClubContext(options);
@@ -21,15 +20,15 @@ namespace FootballClubApp
 
             while (!exit)
             {
-                Console.WriteLine("\nZarządzanie Klubem Piłkarskim");
+                Console.WriteLine("Zarządzanie Klubem Piłkarskim");
                 Console.WriteLine("1. Dodaj ligę");
                 Console.WriteLine("2. Wyświetl ligi");
                 Console.WriteLine("3. Zaktualizuj ligę");
                 Console.WriteLine("4. Usuń ligę");
                 Console.WriteLine("5. Dodaj drużynę");
                 Console.WriteLine("6. Wyświetl drużyny");
-                Console.WriteLine("7. Dodaj zawodnika");
-                Console.WriteLine("8. Wyświetl zawodników");
+                Console.WriteLine("7. Dodaj trenera");
+                Console.WriteLine("8. Wyświetl trenerów");
                 Console.WriteLine("9. Wyjście");
                 Console.Write("Wybierz opcję: ");
 
@@ -56,10 +55,10 @@ namespace FootballClubApp
                         ViewTeams(context);
                         break;
                     case "7":
-                        AddPlayer(context);
+                        AddCoach(context);
                         break;
                     case "8":
-                        ViewPlayers(context);
+                        ViewCoaches(context);
                         break;
                     case "9":
                         exit = true;
@@ -90,7 +89,7 @@ namespace FootballClubApp
         {
             var leagues = context.Leagues.ToList();
 
-            Console.WriteLine("\nLigi:");
+            Console.WriteLine("Ligi:");
             foreach (var league in leagues)
             {
                 Console.WriteLine($"ID: {league.LeagueId}, Nazwa: {league.Name}, Kraj: {league.Country}");
@@ -158,11 +157,25 @@ namespace FootballClubApp
             Console.Write("Podaj ID ligi: ");
             if (int.TryParse(Console.ReadLine(), out int leagueId))
             {
-                var team = new Team { Name = name, LeagueId = leagueId };
-                context.Teams.Add(team);
-                context.SaveChanges();
+                if (!context.Coaches.Any())
+                {
+                    Console.WriteLine("Brak dostępnych trenerów. Dodaj trenera przed utworzeniem drużyny.");
+                    return;
+                }
 
-                Console.WriteLine("Drużyna została dodana pomyślnie.");
+                Console.Write("Podaj ID trenera: ");
+                if (int.TryParse(Console.ReadLine(), out int coachId))
+                {
+                    var team = new Team { Name = name, LeagueId = leagueId, CoachId = coachId };
+                    context.Teams.Add(team);
+                    context.SaveChanges();
+
+                    Console.WriteLine("Drużyna została dodana pomyślnie.");
+                }
+                else
+                {
+                    Console.WriteLine("Nieprawidłowe ID trenera.");
+                }
             }
             else
             {
@@ -172,66 +185,49 @@ namespace FootballClubApp
 
         static void ViewTeams(FootballClubContext context)
         {
-            var teams = context.Teams.Include(t => t.League).ToList();
+            var teams = context.Teams.Include(t => t.League).Include(t => t.Coach).ToList();
 
-            Console.WriteLine("\nDrużyny:");
+            Console.WriteLine("Drużyny:");
             foreach (var team in teams)
             {
-                Console.WriteLine($"ID: {team.TeamId}, Nazwa: {team.Name}, Liga: {team.League?.Name}");
+                Console.WriteLine($"ID: {team.TeamId}, Nazwa: {team.Name}, Liga: {team.League?.Name}, Trener: {team.Coach?.FirstName} {team.Coach?.LastName}");
             }
         }
 
-        static void AddPlayer(FootballClubContext context)
+        static void AddCoach(FootballClubContext context)
         {
-            Console.Write("Podaj imię zawodnika: ");
+            Console.Write("Podaj imię trenera: ");
             var firstName = Console.ReadLine();
 
-            Console.Write("Podaj nazwisko zawodnika: ");
+            Console.Write("Podaj nazwisko trenera: ");
             var lastName = Console.ReadLine();
 
-            Console.Write("Podaj pozycję zawodnika: ");
-            var position = Console.ReadLine();
+            Console.Write("Podaj licencję trenera: ");
+            var license = Console.ReadLine();
 
-            Console.Write("Podaj datę urodzenia zawodnika (YYYY-MM-DD): ");
-            if (DateTime.TryParse(Console.ReadLine(), out var dateOfBirth))
+            Console.Write("Podaj liczbę lat doświadczenia trenera: ");
+            if (int.TryParse(Console.ReadLine(), out int yearsOfExperience))
             {
-                Console.Write("Podaj ID drużyny: ");
-                if (int.TryParse(Console.ReadLine(), out int teamId))
-                {
-                    var player = new Player
-                    {
-                        FirstName = firstName,
-                        LastName = lastName,
-                        Position = position,
-                        DateOfBirth = dateOfBirth,
-                        TeamId = teamId
-                    };
+                var coach = new Coach { FirstName = firstName, LastName = lastName, License = license, YearsOfExperience = yearsOfExperience };
+                context.Coaches.Add(coach);
+                context.SaveChanges();
 
-                    context.Players.Add(player);
-                    context.SaveChanges();
-                    Console.WriteLine("Zawodnik został dodany pomyślnie.");
-                }
-                else
-                {
-                    Console.WriteLine("Nieprawidłowe ID drużyny.");
-                }
+                Console.WriteLine("Trener został dodany pomyślnie.");
             }
             else
             {
-                Console.WriteLine("Nieprawidłowy format daty.");
+                Console.WriteLine("Nieprawidłowa liczba lat doświadczenia.");
             }
         }
 
-        static void ViewPlayers(FootballClubContext context)
+        static void ViewCoaches(FootballClubContext context)
         {
-            var players = context.Players.Include(p => p.Team).ToList();
+            var coaches = context.Coaches.ToList();
 
-            Console.WriteLine("\nZawodnicy:");
-            foreach (var player in players)
+            Console.WriteLine("Trenerzy:");
+            foreach (var coach in coaches)
             {
-                Console.WriteLine($"ID: {player.PlayerId}, Imię i nazwisko: {player.FirstName} {player.LastName}, " +
-                                  $"Pozycja: {player.Position}, Data urodzenia: {player.DateOfBirth.ToShortDateString()}, " +
-                                  $"Drużyna: {player.Team?.Name}");
+                Console.WriteLine($"ID: {coach.CoachId}, Imię: {coach.FirstName}, Nazwisko: {coach.LastName}, Licencja: {coach.License}, Doświadczenie: {coach.YearsOfExperience} lat");
             }
         }
     }
